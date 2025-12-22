@@ -61,14 +61,10 @@ local numero_height = 50
 
 local score_canvas
 
-local score_transform = {
-    rotation = 0,
-    scale = 1
-}
-
 local score_actual = {
     rotation = 0,
-    scale = 1
+    scale = 1,
+    color = {1,1,1,1}
 }
 
 -- Mapa de coordenadas de sprites
@@ -170,6 +166,7 @@ local function reset_ronda()
     timing_bar_state = 0
     elemento_aleatorio = 0
     numero = 0
+    timing_bar_speed_mult = 3
 
     -- Resetear posición y escala del balón
     assets.balon.x = 0
@@ -202,12 +199,26 @@ end
 local function aumentar_score()
     score = score + 1
 
+    timing_bar_speed_mult = 3 + score/10
+
     score_actual = {
         rotation = math.random()*2 - 1,
         scale = 1.6
     }
     timer.tween(1, score_actual, {rotation = 0}, "bounce")
     timer.tween(1, score_actual, {scale = 1}, "out-elastic")
+    timer.during(1,
+        function()
+            score_actual.color[1] = (juice.shake.smooth_seesaw(10, 0)/2 + 0.5)
+            score_actual.color[2] = (juice.shake.smooth_seesaw(10, 2)/2 + 0.5)
+            score_actual.color[3] = (juice.shake.smooth_seesaw(10, 4)/2 + 0.5)
+        end,
+        function()
+            score_actual.color[1] = 1
+            score_actual.color[2] = 1
+            score_actual.color[3] = 1
+        end
+    )
 end
 
 
@@ -239,13 +250,16 @@ local function draw_score()
         -- Dibujar dígito
 
         local drawable = love.graphics.getCanvas()
+        local color = {love.graphics.getColor()}
         love.graphics.setCanvas(score_canvas)
         love.graphics.clear(0,0,0,0)
+        love.graphics.setColor(score_actual.color[1], score_actual.color[2], score_actual.color[3])
         love.graphics.draw(numeros_img, quad, 0, 0)
         love.graphics.setCanvas(drawable)
+        love.graphics.setColor(color)
         --local blend = love.graphics.getBlendMode()
         --love.graphics.setBlendMode("add")
-        love.graphics.draw(score_canvas, start_x, start_y, score_actual.rotation, score_actual.scale)
+        love.graphics.draw(score_canvas, start_x + juice.shake.smooth_seesaw(0.5)*3 + juice.shake.sin_shake(3), start_y, score_actual.rotation, score_actual.scale)
     end
 end
 
@@ -335,10 +349,14 @@ function love.update(dt)
     if GameStates.reaction then
         if movimiento_activo then
             mover_balon(dt, elemento_aleatorio, origin_x, origin_y, target_x, target_y, origin_scale, target_scale)
+            assets.portero.x = juice.shake.smooth_seesaw(2)*4
+            assets.portero.y = juice.shake.smooth_seesaw(8)
         end
     end
 
     if GameStates.timing then
+        assets.portero.x = 0
+        assets.portero.y = 0
         if posicion_portero == 1 then
             assets.sombras.abajo_izquierda.visibilidad = true
         end
@@ -539,7 +557,7 @@ function love.draw()
     )
 
     -- Debug: mostrar offset
-    love.graphics.print("Time: " .. tostring(os.clock() - timing_bar_start), 10, 10)
+    love.graphics.print("Time: " .. tostring(score_actual.color[1]), 10, 10)
 end
 
 function love.resize(w,h)
