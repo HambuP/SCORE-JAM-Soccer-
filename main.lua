@@ -73,16 +73,16 @@ local score_actual = {
 
 -- Mapa de coordenadas de sprites
 local numero_coords = {
-    [0] = {x = 60, y = 240},  -- 0
-    [1] = {x = 0, y = 0},     -- 1
-    [2] = {x = 60, y = 0},    -- 2
-    [3] = {x = 0, y = 60},    -- 3
-    [4] = {x = 60, y = 60},   -- 4
-    [5] = {x = 0, y = 120},   -- 5
-    [6] = {x = 60, y = 120},  -- 6
-    [7] = {x = 0, y = 180},   -- 7
-    [8] = {x = 60, y = 180},  -- 8
-    [9] = {x = 0, y = 240}    -- 9
+    [0] = {x = 60, y = 245},  -- 0
+    [1] = {x = 2, y = 5},     -- 1
+    [2] = {x = 60, y = 5},    -- 2
+    [3] = {x = 0, y = 65},    -- 3
+    [4] = {x = 60, y = 65},   -- 4
+    [5] = {x = 0, y = 125},   -- 5
+    [6] = {x = 60, y = 125},  -- 6
+    [7] = {x = 0, y = 185},   -- 7
+    [8] = {x = 60, y = 185},  -- 8
+    [9] = {x = 0, y = 245}    -- 9
 }
 
 Tiros = {
@@ -90,6 +90,16 @@ Tiros = {
     "curve", "curve","curve",
     "powershot",
     "knuckelball"
+}
+
+-- Sistema de audio
+local Sounds = {
+    musica = nil,
+    gamestart = nil,
+    soccerkick = nil,
+    point = nil,
+    tenpoint = nil,
+    gameover = nil
 }
 
 function love.load()
@@ -157,6 +167,17 @@ function love.load()
     love.graphics.setCanvas(score_canvas)
     love.graphics.clear(0,0,0,0)
     love.graphics.setCanvas()
+    -- Cargar sonidos
+    Sounds.musica = love.audio.newSource("sound/musica.wav", "stream")
+    Sounds.musica:setLooping(true)
+    Sounds.gamestart = love.audio.newSource("sound/gamestart.mp3", "static")
+    Sounds.soccerkick = love.audio.newSource("sound/soccerkick.mp3", "static")
+    Sounds.point = love.audio.newSource("sound/point.mp3", "static")
+    Sounds.tenpoint = love.audio.newSource("sound/10point.mp3", "static")
+    Sounds.gameover = love.audio.newSource("sound/gameover.mp3", "static")
+
+    -- Iniciar música de fondo
+    Sounds.musica:play()
 end
 
 local function reset_ronda()
@@ -266,6 +287,7 @@ function love.update(dt)
         assets.spacestart.visibilidad = true
 
         if love.keyboard.isDown("space") then
+            Sounds.gamestart:play()
             GameStates.menu = false
             GameStates.kick = true
         end
@@ -325,6 +347,7 @@ function love.update(dt)
 
                 movimiento_progreso = 0
                 movimiento_activo = true
+                Sounds.soccerkick:play()
                 GameStates.kick = false
                 GameStates.reaction = true
             end
@@ -360,6 +383,9 @@ function love.update(dt)
             if timing_bar_visible == false then
                 timing_bar_visible = true
                 math.randomseed(os.clock())
+                -- Generar timing con límites: entre -0.7 y 0.7 en lugar de -1 a 1
+                -- Esto evita que aparezca muy al borde
+                local timing = math.random() * 0.7 * 2 - 0.7  -- Rango: -0.7 a 0.7
                 local timing = math.random()*1.5 - 0.7
                 offset_timing_bar = timing
                 timing_bar_start = os.clock()
@@ -367,6 +393,7 @@ function love.update(dt)
                 timing_bar_state = ( os.clock() - timing_bar_start ) / duracion
                 if timing_bar_state > 1 then
                     -- Se acabó el tiempo sin hacer clic
+                    Sounds.gameover:play()
                     GameStates.timing = false
                     GameStates.gameover = true
                     timing_bar_visible = false
@@ -386,6 +413,7 @@ function love.update(dt)
                     else
                         -- Falló el timing
                         print("Mal timing. Diferencia: " .. diff)
+                        Sounds.gameover:play()
                         GameStates.timing = false
                         GameStates.gameover = true
                         timing_bar_visible = false
@@ -394,7 +422,8 @@ function love.update(dt)
                 end
             end
         else
-        
+            -- El portero atajó el balón
+            Sounds.gameover:play()
             GameStates.timing = false
             GameStates.gameover = true
         end
@@ -402,6 +431,13 @@ function love.update(dt)
     if GameStates.result then
         -- Incrementar score
         aumentar_score()
+
+        -- Reproducir sonido según score
+        if score % 10 == 0 then
+            Sounds.tenpoint:play()
+        else
+            Sounds.point:play()
+        end
 
         -- Resetear para nueva ronda
         reset_ronda()
@@ -511,7 +547,11 @@ function love.draw()
 
     -- Dibujar timing bar dentro del canvas si está activa
     if GameStates.timing and timing_bar_visible then
-        draw_timing_bar(10, 10)
+        -- Centrar la barra: (360 - ancho_barra) / 2
+        -- Bajar un poco la posición Y
+        local bar_x = (game_width - bar.back:getWidth()) / 2
+        local bar_y = 60  -- Bajada desde 10 a 60
+        draw_timing_bar(bar_x, bar_y)
     end
 
     -- Dibujar score (siempre visible excepto en menú)
@@ -539,7 +579,7 @@ function love.draw()
     )
 
     -- Debug: mostrar offset
-    love.graphics.print("Time: " .. tostring(os.clock() - timing_bar_start), 10, 10)
+    --love.graphics.print("Time: " .. tostring(os.clock() - timing_bar_start), 10, 10)
 end
 
 function love.resize(w,h)
