@@ -116,4 +116,14 @@ Assets.fondo = {
     invertible = false
 }
 
+Assets.gameover = {
+    visibilidad = false,
+    x= 0,
+    y=0,
+    sprite = { path = "assets/gameover.png", width = 360, height = 420},
+    scale = 1,
+
+    invertible = false
+}
+
 return Assets

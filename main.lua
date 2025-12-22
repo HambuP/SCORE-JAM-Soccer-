@@ -41,7 +41,7 @@ local curva_control_x = 0
 local curva_control_y = 0
 
 local offset_timing_bar = 0 -- Va entre -1 ; 1, 0 significa en el centro.
-local timing_bar_speed_mult = 1 -- Entre más alto el escalar, más rápido duh
+local timing_bar_speed_mult = 2 -- Entre más alto el escalar, más rápido duh
 local timing_bar_state = 0 -- número entre 0 y 1, 0 acaba de empezar, 1 termina, entre 0 y 1 una posición en la barra
 local timing_bar_visible = false -- No voy a explicar esto
 local timing_bar_start = 0 -- tiempo exacto en el que empieza
@@ -49,6 +49,27 @@ local timing_bar_start = 0 -- tiempo exacto en el que empieza
 local bar = {}
 
 local mouse_presionado = false
+
+-- Sistema de puntuación
+local score = 0
+local highest_score = 0
+local numeros_img = nil
+local numero_width = 50
+local numero_height = 50
+
+-- Mapa de coordenadas de sprites
+local numero_coords = {
+    [0] = {x = 60, y = 240},  -- 0
+    [1] = {x = 0, y = 0},     -- 1
+    [2] = {x = 60, y = 0},    -- 2
+    [3] = {x = 0, y = 60},    -- 3
+    [4] = {x = 60, y = 60},   -- 4
+    [5] = {x = 0, y = 120},   -- 5
+    [6] = {x = 60, y = 120},  -- 6
+    [7] = {x = 0, y = 180},   -- 7
+    [8] = {x = 60, y = 180},  -- 8
+    [9] = {x = 0, y = 240}    -- 9
+}
 
 Tiros = {
     "recto", "recto","recto","recto","recto",
@@ -106,12 +127,85 @@ function love.load()
     _G.titulo_img = love.graphics.newImage("assets/titulo.png")
     Imagenes.titulo = titulo_img
 
-
+    _G.gameover_img = love.graphics.newImage("assets/gameover.png")
+    Imagenes.gameover = gameover_img
 
     bar.front = love.graphics.newImage("assets/barra_front.png")
     bar.back = love.graphics.newImage("assets/barra_back.png")
     bar.timing = love.graphics.newImage("assets/barra_timing.png")
     bar.barrita = love.graphics.newImage("assets/barra_barrita.png")
+
+    -- Cargar sprite de números
+    numeros_img = love.graphics.newImage("assets/numeros.png")
+end
+
+local function reset_ronda()
+    -- Resetear variables para nueva ronda
+    countdown = 1
+    activo = true
+    seleccion_portero = true
+    posicion_portero = 6
+    movimiento_progreso = 0
+    timing_bar_visible = false
+    timing_bar_state = 0
+    elemento_aleatorio = 0
+    numero = 0
+
+    -- Resetear posición y escala del balón
+    assets.balon.x = 0
+    assets.balon.y = 0
+    assets.balon.scale = 1
+
+    -- Ocultar gameover
+    assets.gameover.visibilidad = false
+
+    -- Resetear estados
+    GameStates.menu = false
+    GameStates.kick = true
+    GameStates.reaction = false
+    GameStates.timing = false
+    GameStates.result = false
+    GameStates.gameover = false
+end
+
+local function reset_juego()
+    -- Reset completo incluyendo score
+    score = 0
+    reset_ronda()
+
+    -- Volver al menú
+    GameStates.menu = true
+    GameStates.kick = false
+end
+
+local function draw_score()
+    -- Convertir score a string de dígitos
+    local score_str = tostring(score)
+    local num_digits = #score_str
+
+    -- Calcular posición central
+    local total_width = num_digits * numero_width
+    local start_x = (game_width - total_width) / 2
+    local start_y = 10  -- 10 píxeles desde arriba
+
+    -- Dibujar cada dígito
+    for i = 1, num_digits do
+        local digit = tonumber(score_str:sub(i, i))
+        local coords = numero_coords[digit]
+
+        -- Crear quad para el dígito
+        local quad = love.graphics.newQuad(
+            coords.x, coords.y,
+            numero_width, numero_height,
+            numeros_img:getWidth(), numeros_img:getHeight()
+        )
+
+        -- Posición x para este dígito
+        local x = start_x + (i - 1) * numero_width
+
+        -- Dibujar dígito
+        love.graphics.draw(numeros_img, quad, x, start_y)
+    end
 end
 
 function love.update(dt)
@@ -221,39 +315,87 @@ function love.update(dt)
         end
         
         local duracion = 3 / timing_bar_speed_mult
-        if timing_bar_visible == false then
-            timing_bar_visible = true
-            local timing = math.random()
-            offset_timing_bar = timing*2 - 1
-            timing_bar_start = os.clock()
-        else
-            timing_bar_state = ( os.clock() - timing_bar_start ) / duracion
-            if timing_bar_state > 1 then
-                GameStates.timing = false
-                timing_bar_visible = false
-                timing_bar_state = 0
-            end
-            if mouse_presionado then
-                -- Convertir offset_timing_bar (-1 a 1) a posición en la barra (0 a 1)
-                local target_position = (offset_timing_bar + 1) / 2
-                local diff = math.abs(timing_bar_state - target_position)
-                if diff < 0.1 then
-                    -- ¡Éxito! Timing perfecto
-                    print("¡Buen timing! Diferencia: " .. diff)
+        if posicion_portero == numero then
+            if timing_bar_visible == false then
+                timing_bar_visible = true
+                math.randomseed(os.clock())
+                local timing = math.random()
+                offset_timing_bar = timing*2 - 1
+                timing_bar_start = os.clock()
+            else
+                timing_bar_state = ( os.clock() - timing_bar_start ) / duracion
+                if timing_bar_state > 1 then
+                    -- Se acabó el tiempo sin hacer clic
                     GameStates.timing = false
-                    timing_bar_visible = false
-                    timing_bar_state = 0
-                else
-                    -- Falló el timing
-                    print("Mal timing. Diferencia: " .. diff)
-                    GameStates.timing = false
+                    GameStates.gameover = true
                     timing_bar_visible = false
                     timing_bar_state = 0
                 end
+                if mouse_presionado then
+                    -- Convertir offset_timing_bar (-1 a 1) a posición en la barra (0 a 1)
+                    local target_position = (offset_timing_bar + 1) / 2
+                    local diff = math.abs(timing_bar_state - target_position)
+                    if diff < 0.1 then
+                        -- ¡Éxito! Timing perfecto
+                        print("¡Buen timing! Diferencia: " .. diff)
+                        GameStates.timing = false
+                        GameStates.result = true
+                        timing_bar_visible = false
+                        timing_bar_state = 0
+                    else
+                        -- Falló el timing
+                        print("Mal timing. Diferencia: " .. diff)
+                        GameStates.timing = false
+                        GameStates.gameover = true
+                        timing_bar_visible = false
+                        timing_bar_state = 0
+                    end
+                end
             end
+        else
+        
+            GameStates.timing = false
+            GameStates.gameover = true
+        end
+    end
+    if GameStates.result then
+        -- Incrementar score
+        score = score + 1
+
+        -- Resetear para nueva ronda
+        reset_ronda()
+    end
+
+    if GameStates.gameover then
+        -- Actualizar highest score
+        if score > highest_score then
+            highest_score = score
         end
 
+        -- Mostrar cancha, balón, portero, sombra del portero y fondo oscuro
+        assets.balon.visibilidad = true
+        assets.portero.visibilidad = true
+        assets.cancha.visibilidad = true
+        assets.gameover.visibilidad = true
+        assets.fondo.visibilidad = true
+
+        -- Mostrar solo la sombra correspondiente a la posición del portero
+        assets.sombras.arriba.visibilidad = (posicion_portero == 3)
+        assets.sombras.abajo_derecha.visibilidad = (posicion_portero == 5)
+        assets.sombras.abajo_izquierda.visibilidad = (posicion_portero == 1)
+        assets.sombras.arriba_derecha.visibilidad = (posicion_portero == 4)
+        assets.sombras.arriba_izquierda.visibilidad = (posicion_portero == 2)
+
+        -- Ocultar elementos de menú
+        assets.titulo.visibilidad = false
+        assets.spacestart.visibilidad = false
+
+        -- Detectar reinicio (presionar R o SPACE)
+        if love.keyboard.isDown("space") or love.keyboard.isDown("r") then
+            reset_juego()
+        end
     end
+
     mouse_presionado = false
 end
 
@@ -286,6 +428,7 @@ function love.draw()
         "portero",
         "balon",
         "fondo",
+        "gameover",
         "spacestart",
         "titulo"
     }
@@ -328,6 +471,20 @@ function love.draw()
     -- Dibujar timing bar dentro del canvas si está activa
     if GameStates.timing and timing_bar_visible then
         draw_timing_bar(10, 10)
+    end
+
+    -- Dibujar score (siempre visible excepto en menú)
+    if not GameStates.menu then
+        draw_score()
+    end
+
+    -- Mostrar highest score en GAMEOVER
+    if GameStates.gameover then
+        love.graphics.setColor(1, 1, 1, 1)
+        local msg_highest = "HIGHEST: " .. tostring(highest_score)
+        love.graphics.print(msg_highest, 180, 320, 0, 1.5, 1.5,
+            love.graphics.getFont():getWidth(msg_highest) / 2,
+            love.graphics.getFont():getHeight() / 2)
     end
 
     love.graphics.setCanvas()
