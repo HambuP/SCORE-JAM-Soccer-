@@ -33,6 +33,7 @@ local origin_y = 0
 local origin_scale = 1
 local movimiento_progreso = 0
 local movimiento_duracion = 1.0
+local movimiento_duracion_actual = 1.0
 local movimiento_activo = false
 local posicion_portero = 6
 local seleccion_portero = true
@@ -42,7 +43,10 @@ local curva_control_y = 0
 
 
 Tiros = {
-    "recto", "curve"
+    "recto", "recto","recto","recto","recto",
+    "curve", "curve","curve",
+    "powershot",
+    "knuckelball"
 }
 
 function love.load()
@@ -81,6 +85,21 @@ function love.load()
     assets.balon.sprite.imagen = love.graphics.newImage(assets.balon.sprite.path)
     _G.balon_img = love.graphics.newImage("assets/balon.png")
     Imagenes.balon = balon_img
+
+    assets.fondo.sprite.imagen = love.graphics.newImage(assets.fondo.sprite.path)
+    _G.fondo_img = love.graphics.newImage("assets/fondo.png")
+    Imagenes.fondo = fondo_img
+
+    assets.spacestart.sprite.imagen = love.graphics.newImage(assets.spacestart.sprite.path)
+    _G.spacestart_img = love.graphics.newImage("assets/spacestart.png")
+    Imagenes.spacestart = spacestart_img
+
+    assets.titulo.sprite.imagen = love.graphics.newImage(assets.titulo.sprite.path)
+    _G.titulo_img = love.graphics.newImage("assets/titulo.png")
+    Imagenes.titulo = titulo_img
+
+
+
 end
 
 function love.update(dt)
@@ -88,13 +107,16 @@ function love.update(dt)
     if GameStates.menu then
 
         assets.balon.visibilidad = false
-        assets.cancha.visibilidad = false
+        assets.cancha.visibilidad = true
         assets.portero.visibilidad = false
         assets.sombras.arriba.visibilidad = false
         assets.sombras.abajo_derecha.visibilidad = false
         assets.sombras.abajo_izquierda.visibilidad = false
         assets.sombras.arriba_derecha.visibilidad = false
         assets.sombras.arriba_izquierda.visibilidad = false
+        assets.fondo.visibilidad = true
+        assets.titulo.visibilidad = true
+        assets.spacestart.visibilidad = true
 
         if love.keyboard.isDown("space") then
             GameStates.menu = false
@@ -111,6 +133,9 @@ function love.update(dt)
         assets.sombras.abajo_izquierda.visibilidad = false
         assets.sombras.arriba_derecha.visibilidad = false
         assets.sombras.arriba_izquierda.visibilidad = false
+        assets.fondo.visibilidad = false
+        assets.titulo.visibilidad = false
+        assets.spacestart.visibilidad = false
 
         if activo then
             countdown = countdown - dt
@@ -123,6 +148,13 @@ function love.update(dt)
                 origin_scale = assets.balon.scale
                 target_x, target_y = assets.balon.cord[numero].x, assets.balon.cord[numero].y
                 target_scale = assets.balon.scale_min
+
+                -- Establecer duración según el tipo de tiro
+                if elemento_aleatorio == "powershot" then
+                    movimiento_duracion_actual = movimiento_duracion / 2  -- Mitad del tiempo
+                else
+                    movimiento_duracion_actual = movimiento_duracion  -- Tiempo normal
+                end
 
                 -- Calcular dirección de la curva según la posición
                 if elemento_aleatorio == "curve" then
@@ -192,7 +224,10 @@ function love.draw()
         "abajo_derecha",
         "arriba",
         "portero",
-        "balon"
+        "balon",
+        "fondo",
+        "spacestart",
+        "titulo"
     }
 
     for _, valor in ipairs(orden_dibujo) do
@@ -293,7 +328,7 @@ function _G.mover_balon(dt, tiro, xorigin, yorigin, xtarget, ytarget, scaleori, 
 
     if tiro == "recto" then
         
-        movimiento_progreso = movimiento_progreso + (dt / movimiento_duracion)
+        movimiento_progreso = movimiento_progreso + (dt / movimiento_duracion_actual)
 
         
         if movimiento_progreso >= 1 then
@@ -311,7 +346,7 @@ function _G.mover_balon(dt, tiro, xorigin, yorigin, xtarget, ytarget, scaleori, 
 
     if tiro == "curve" then
 
-        movimiento_progreso = movimiento_progreso + (dt / movimiento_duracion)
+        movimiento_progreso = movimiento_progreso + (dt / movimiento_duracion_actual)
 
 
         if movimiento_progreso >= 1 then
@@ -334,6 +369,63 @@ function _G.mover_balon(dt, tiro, xorigin, yorigin, xtarget, ytarget, scaleori, 
                          2 * t_inv * t * curva_control_y +
                          t * t * ytarget
 
+        assets.balon.scale = scaleori + (scaletarget - scaleori) * movimiento_progreso
+    end
+
+    if tiro == "powershot" then
+
+        movimiento_progreso = movimiento_progreso + (dt / movimiento_duracion_actual)
+
+
+        if movimiento_progreso >= 1 then
+            movimiento_progreso = 1
+            movimiento_activo = false
+            GameStates.reaction = false
+            GameStates.timing = true
+        end
+
+
+        assets.balon.x = xorigin + (xtarget - xorigin) * movimiento_progreso
+        assets.balon.y = yorigin + (ytarget - yorigin) * movimiento_progreso
+        assets.balon.scale = scaleori + (scaletarget - scaleori) * movimiento_progreso
+    end
+
+    if tiro== "knuckelball" then
+
+        movimiento_progreso = movimiento_progreso + (dt / movimiento_duracion_actual)
+
+
+        if movimiento_progreso >= 1 then
+            movimiento_progreso = 1
+            movimiento_activo = false
+            GameStates.reaction = false
+            GameStates.timing = true
+        end
+
+        -- Movimiento base lineal
+        local base_x = xorigin + (xtarget - xorigin) * movimiento_progreso
+        local base_y = yorigin + (ytarget - yorigin) * movimiento_progreso
+
+        -- Oscilación errática con múltiples frecuencias (efecto knuckleball)
+        -- Usar seno y coseno con diferentes frecuencias para crear movimiento impredecible
+        local t = movimiento_progreso
+        local frecuencia1 = 12  -- Oscilación rápida
+        local frecuencia2 = 7   -- Oscilación media
+        local amplitud_x = 25   -- Amplitud horizontal
+        local amplitud_y = 15   -- Amplitud vertical
+
+        -- Reducir amplitud al principio y al final para que salga y llegue bien
+        local fade = math.sin(t * math.pi)
+
+        -- Combinar múltiples ondas sinusoidales para efecto errático
+        local zigzag_x = (math.sin(t * frecuencia1 * math.pi) * 0.6 +
+                         math.cos(t * frecuencia2 * math.pi) * 0.4) * amplitud_x * fade
+
+        local zigzag_y = (math.cos(t * frecuencia1 * math.pi) * 0.5 +
+                         math.sin(t * frecuencia2 * math.pi) * 0.5) * amplitud_y * fade
+
+        assets.balon.x = base_x + zigzag_x
+        assets.balon.y = base_y + zigzag_y
         assets.balon.scale = scaleori + (scaletarget - scaleori) * movimiento_progreso
     end
 end

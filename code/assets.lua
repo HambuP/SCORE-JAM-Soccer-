@@ -86,4 +86,34 @@ Assets.sombras = {
     }
 }
 
+Assets.titulo = {
+    visibilidad = true,
+    x=0,
+    y=0,
+    sprite = { path = "assets/titulo.png", width = 360, height = 420},
+    scale = 1,
+
+    invertible = false
+}
+
+Assets.spacestart = {
+    visibilidad = true,
+    x=0,
+    y=0,
+    sprite = { path = "assets/spacestart.png", width = 360, height = 420},
+    scale = 1,
+
+    invertible = false
+}
+
+Assets.fondo = {
+    visibilidad = true,
+    x= 0,
+    y=0,
+    sprite = { path = "assets/fondo.png", width = 360, height = 420},
+    scale = 1,
+
+    invertible = false
+}
+
 return Assets
