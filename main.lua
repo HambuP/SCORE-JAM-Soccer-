@@ -319,8 +319,8 @@ function love.update(dt)
             if timing_bar_visible == false then
                 timing_bar_visible = true
                 math.randomseed(os.clock())
-                local timing = math.random()
-                offset_timing_bar = timing*2 - 1
+                local timing = math.random()*1.5 - 0.7
+                offset_timing_bar = timing
                 timing_bar_start = os.clock()
             else
                 timing_bar_state = ( os.clock() - timing_bar_start ) / duracion
