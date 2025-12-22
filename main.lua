@@ -36,10 +36,13 @@ local movimiento_duracion = 1.0
 local movimiento_activo = false
 local posicion_portero = 6
 local seleccion_portero = true
+local curva_direccion = 0  -- -1 para izquierda, 1 para derecha
+local curva_control_x = 0
+local curva_control_y = 0
 
 
 Tiros = {
-    "recto"
+    "recto", "curve"
 }
 
 function love.load()
@@ -120,6 +123,27 @@ function love.update(dt)
                 origin_scale = assets.balon.scale
                 target_x, target_y = assets.balon.cord[numero].x, assets.balon.cord[numero].y
                 target_scale = assets.balon.scale_min
+
+                -- Calcular dirección de la curva según la posición
+                if elemento_aleatorio == "curve" then
+                    if numero == 3 then
+                        -- Centro: aleatorio izquierda o derecha
+                        curva_direccion = love.math.random(0, 1) == 0 and -1 or 1
+                    elseif numero == 1 or numero == 2 then
+                        -- Izquierda: curva hacia la izquierda
+                        curva_direccion = -1
+                    else
+                        -- Derecha: curva hacia la derecha
+                        curva_direccion = 1
+                    end
+
+                    -- Calcular punto de control para la curva
+                    local mid_x = (origin_x + target_x) / 2
+                    local mid_y = (origin_y + target_y) / 2
+                    curva_control_x = mid_x + (100 * curva_direccion)
+                    curva_control_y = mid_y
+                end
+
                 movimiento_progreso = 0
                 movimiento_activo = true
                 GameStates.kick = false
@@ -282,6 +306,34 @@ function _G.mover_balon(dt, tiro, xorigin, yorigin, xtarget, ytarget, scaleori, 
         
         assets.balon.x = xorigin + (xtarget - xorigin) * movimiento_progreso
         assets.balon.y = yorigin + (ytarget - yorigin) * movimiento_progreso
+        assets.balon.scale = scaleori + (scaletarget - scaleori) * movimiento_progreso
+    end
+
+    if tiro == "curve" then
+
+        movimiento_progreso = movimiento_progreso + (dt / movimiento_duracion)
+
+
+        if movimiento_progreso >= 1 then
+            movimiento_progreso = 1
+            movimiento_activo = false
+            GameStates.reaction = false
+            GameStates.timing = true
+        end
+
+        -- Curva cuadrática Bézier: P = (1-t)²*P0 + 2(1-t)*t*P1 + t²*P2
+        -- P0 = origen, P1 = punto de control, P2 = destino
+        local t = movimiento_progreso
+        local t_inv = 1 - t
+
+        assets.balon.x = t_inv * t_inv * xorigin +
+                         2 * t_inv * t * curva_control_x +
+                         t * t * xtarget
+
+        assets.balon.y = t_inv * t_inv * yorigin +
+                         2 * t_inv * t * curva_control_y +
+                         t * t * ytarget
+
         assets.balon.scale = scaleori + (scaletarget - scaleori) * movimiento_progreso
     end
 end
