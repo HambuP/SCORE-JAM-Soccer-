@@ -1,4 +1,3 @@
-
 local love = require("love")
 local assets = require("code/Assets")
 
@@ -40,6 +39,15 @@ local curva_direccion = 0  -- -1 para izquierda, 1 para derecha
 local curva_control_x = 0
 local curva_control_y = 0
 
+local offset_timing_bar = 0 -- Va entre -1 ; 1, 0 significa en el centro.
+local timing_bar_speed_mult = 1 -- Entre más alto el escalar, más rápido duh
+local timing_bar_state = 0 -- número entre 0 y 1, 0 acaba de empezar, 1 termina, entre 0 y 1 una posición en la barra
+local timing_bar_visible = false -- No voy a explicar esto
+local timing_bar_start = 0 -- tiempo exacto en el que empieza
+
+local bar = {}
+
+local mouse_presionado = false
 
 Tiros = {
     "recto", "curve"
@@ -81,6 +89,11 @@ function love.load()
     assets.balon.sprite.imagen = love.graphics.newImage(assets.balon.sprite.path)
     _G.balon_img = love.graphics.newImage("assets/balon.png")
     Imagenes.balon = balon_img
+
+    bar.front = love.graphics.newImage("assets/barra_front.png")
+    bar.back = love.graphics.newImage("assets/barra_back.png")
+    bar.timing = love.graphics.newImage("assets/barra_timing.png")
+    bar.barrita = love.graphics.newImage("assets/barra_barrita.png")
 end
 
 function love.update(dt)
@@ -175,10 +188,58 @@ function love.update(dt)
         if posicion_portero == 5 then
             assets.sombras.abajo_derecha.visibilidad = true
         end
- 
+        
+        local duracion = 3 / timing_bar_speed_mult
+        if timing_bar_visible == false then
+            timing_bar_visible = true
+            local timing = math.random()
+            offset_timing_bar = timing*2 - 1
+            timing_bar_start = os.clock()
+        else
+            timing_bar_state = ( os.clock() - timing_bar_start ) / duracion
+            if timing_bar_state > 1 then
+                GameStates.timing = false
+                timing_bar_visible = false
+                timing_bar_state = 0
+            end
+            if mouse_presionado then
+                -- Convertir offset_timing_bar (-1 a 1) a posición en la barra (0 a 1)
+                local target_position = (offset_timing_bar + 1) / 2
+                local diff = math.abs(timing_bar_state - target_position)
+                if diff < 0.1 then
+                    -- ¡Éxito! Timing perfecto
+                    print("¡Buen timing! Diferencia: " .. diff)
+                    GameStates.timing = false
+                    timing_bar_visible = false
+                    timing_bar_state = 0
+                else
+                    -- Falló el timing
+                    print("Mal timing. Diferencia: " .. diff)
+                    GameStates.timing = false
+                    timing_bar_visible = false
+                    timing_bar_state = 0
+                end
+            end
+        end
 
     end
+    mouse_presionado = false
+end
 
+local function draw_timing_bar(x, y)
+    -- Dibujar fondo
+    love.graphics.draw(bar.back, x, y)
+
+    -- Dibujar objetivo (timing mark) - offset basado en offset_timing_bar
+    local timing_offset_x = (bar.back:getWidth()/2) * offset_timing_bar
+    love.graphics.draw(bar.timing, x + timing_offset_x, y)
+
+    -- Dibujar marco frontal
+    love.graphics.draw(bar.front, x, y)
+
+    -- Dibujar barrita de progreso - offset basado en timing_bar_state
+    local barrita_offset_x = (bar.back:getWidth()) * (timing_bar_state)
+    love.graphics.draw(bar.barrita, x + barrita_offset_x, y)
 end
 
 function love.draw()
@@ -230,6 +291,11 @@ function love.draw()
         end
     end
 
+    -- Dibujar timing bar dentro del canvas si está activa
+    if GameStates.timing and timing_bar_visible then
+        draw_timing_bar(10, 10)
+    end
+
     love.graphics.setCanvas()
     love.graphics.draw(
         canvas,
@@ -239,6 +305,9 @@ function love.draw()
         scale,
         scale
     )
+
+    -- Debug: mostrar offset
+    love.graphics.print("Time: " .. tostring(os.clock() - timing_bar_start), 10, 10)
 end
 
 function love.resize(w,h)
@@ -336,4 +405,10 @@ function _G.mover_balon(dt, tiro, xorigin, yorigin, xtarget, ytarget, scaleori, 
 
         assets.balon.scale = scaleori + (scaletarget - scaleori) * movimiento_progreso
     end
+end
+
+function love.mousepressed( x, y, button, istouch, presses )
+    if button == 1 then
+        mouse_presionado = true
+    end 
 end
