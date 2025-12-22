@@ -1,5 +1,7 @@
 local love = require("love")
 local assets = require("code/Assets")
+local juice = require("code/juice")
+local timer = require("code/timer")
 
 local game_width = 360
 local game_height = 420
@@ -56,6 +58,18 @@ local highest_score = 0
 local numeros_img = nil
 local numero_width = 50
 local numero_height = 50
+
+local score_canvas
+
+local score_transform = {
+    rotation = 0,
+    scale = 1
+}
+
+local score_actual = {
+    rotation = 0,
+    scale = 1
+}
 
 -- Mapa de coordenadas de sprites
 local numero_coords = {
@@ -137,6 +151,12 @@ function love.load()
 
     -- Cargar sprite de números
     numeros_img = love.graphics.newImage("assets/numeros.png")
+
+    score_canvas = love.graphics.newCanvas(60, 60*5)
+
+    love.graphics.setCanvas(score_canvas)
+    love.graphics.clear(0,0,0,0)
+    love.graphics.setCanvas()
 end
 
 local function reset_ronda()
@@ -166,6 +186,7 @@ local function reset_ronda()
     GameStates.timing = false
     GameStates.result = false
     GameStates.gameover = false
+    
 end
 
 local function reset_juego()
@@ -177,6 +198,18 @@ local function reset_juego()
     GameStates.menu = true
     GameStates.kick = false
 end
+
+local function aumentar_score()
+    score = score + 1
+
+    score_actual = {
+        rotation = math.random()*2 - 1,
+        scale = 1.6
+    }
+    timer.tween(1, score_actual, {rotation = 0}, "bounce")
+    timer.tween(1, score_actual, {scale = 1}, "out-elastic")
+end
+
 
 local function draw_score()
     -- Convertir score a string de dígitos
@@ -204,12 +237,20 @@ local function draw_score()
         local x = start_x + (i - 1) * numero_width
 
         -- Dibujar dígito
-        love.graphics.draw(numeros_img, quad, x, start_y)
+
+        local drawable = love.graphics.getCanvas()
+        love.graphics.setCanvas(score_canvas)
+        love.graphics.clear(0,0,0,0)
+        love.graphics.draw(numeros_img, quad, 0, 0)
+        love.graphics.setCanvas(drawable)
+        --local blend = love.graphics.getBlendMode()
+        --love.graphics.setBlendMode("add")
+        love.graphics.draw(score_canvas, start_x, start_y, score_actual.rotation, score_actual.scale)
     end
 end
 
 function love.update(dt)
-
+    timer.update(dt)
     if GameStates.menu then
 
         assets.balon.visibilidad = false
@@ -360,7 +401,7 @@ function love.update(dt)
     end
     if GameStates.result then
         -- Incrementar score
-        score = score + 1
+        aumentar_score()
 
         -- Resetear para nueva ronda
         reset_ronda()
