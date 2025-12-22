@@ -346,6 +346,7 @@ function love.update(dt)
                 -- Generar timing con límites: entre -0.7 y 0.7 en lugar de -1 a 1
                 -- Esto evita que aparezca muy al borde
                 local timing = math.random() * 0.7 * 2 - 0.7  -- Rango: -0.7 a 0.7
+                local timing = math.random()*1.5 - 0.7
                 offset_timing_bar = timing
                 timing_bar_start = os.clock()
             else
