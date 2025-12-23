@@ -168,7 +168,7 @@ function love.load()
     Sounds.musica:setLooping(true)
     Sounds.gamestart = love.audio.newSource("sound/gamestart.mp3", "static")
     Sounds.soccerkick = love.audio.newSource("sound/soccerkick.mp3", "static")
-    Sounds.point = love.audio.newSource("sound/point.mp3", "static")
+    Sounds.point = love.audio.newSource("sound/point.wav", "static")
     Sounds.tenpoint = love.audio.newSource("sound/10point.mp3", "static")
     Sounds.gameover = love.audio.newSource("sound/gameover.mp3", "static")
 
@@ -221,6 +221,12 @@ local function aumentar_score()
     score = score + 1
 
     timing_bar_speed_mult = 3 + score/10
+    -- Reproducir sonido según score
+    if score % 10 == 0 then
+        Sounds.tenpoint:play()
+    else
+        Sounds.point:play()
+    end
 
     score_actual = {
         rotation = math.random()*2 - 1,
@@ -443,15 +449,8 @@ function love.update(dt)
         end
     end
     if GameStates.result then
-        -- Incrementar score
+        -- Incrementar score y reproducir sonido
         aumentar_score()
-
-        -- Reproducir sonido según score
-        if score % 10 == 0 then
-            Sounds.tenpoint:play()
-        else
-            Sounds.point:play()
-        end
 
         -- Resetear para nueva ronda
         reset_ronda()
