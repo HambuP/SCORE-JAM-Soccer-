@@ -43,11 +43,7 @@ local curva_control_x = 0
 local curva_control_y = 0
 
 local offset_timing_bar = 0 -- Va entre -1 ; 1, 0 significa en el centro.
-<<<<<<< Updated upstream
 local timing_bar_speed_mult = 2 -- Entre más alto el escalar, más rápido duh
-=======
-local timing_bar_speed_mult = 0.3 -- Entre más alto el escalar, más rápido duh
->>>>>>> Stashed changes
 local timing_bar_state = 0 -- número entre 0 y 1, 0 acaba de empezar, 1 termina, entre 0 y 1 una posición en la barra
 local timing_bar_visible = false -- No voy a explicar esto
 local timing_bar_start = 0 -- tiempo exacto en el que empieza
@@ -594,13 +590,9 @@ function love.draw()
         scale,
         scale
     )
-<<<<<<< Updated upstream
-=======
-
     -- Debug: mostrar offset
     local target_position = (offset_timing_bar + 1) / 2
     love.graphics.print("Time: " .. tostring(math.abs(timing_bar_state - target_position)), 10, 10)
->>>>>>> Stashed changes
 end
 
 function love.resize(w,h)
