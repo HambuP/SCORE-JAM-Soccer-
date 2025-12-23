@@ -64,7 +64,7 @@ local score_canvas
 local score_actual = {
     rotation = 0,
     scale = 1,
-    color = {1,1,1,1}
+    color = false
 }
 
 -- Mapa de coordenadas de sprites
@@ -228,18 +228,12 @@ local function aumentar_score()
     }
     timer.tween(1, score_actual, {rotation = 0}, "bounce")
     timer.tween(1, score_actual, {scale = 1}, "out-elastic")
-    timer.during(1,
-        function()
-            score_actual.color[1] = (juice.shake.smooth_seesaw(10, 0)/2 + 0.5)
-            score_actual.color[2] = (juice.shake.smooth_seesaw(10, 2)/2 + 0.5)
-            score_actual.color[3] = (juice.shake.smooth_seesaw(10, 4)/2 + 0.5)
-        end,
-        function()
-            score_actual.color[1] = 1
-            score_actual.color[2] = 1
-            score_actual.color[3] = 1
-        end
-    )
+
+    score_actual.color = true
+
+    timer.after(1, function()
+        score_actual.color = false
+    end)
 end
 
 
@@ -274,7 +268,9 @@ local function draw_score()
         local color = {love.graphics.getColor()}
         love.graphics.setCanvas(score_canvas)
         love.graphics.clear(0,0,0,0)
-        love.graphics.setColor(score_actual.color[1], score_actual.color[2], score_actual.color[3])
+        if score_actual.color == true then
+            love.graphics.setColor((juice.shake.smooth_seesaw(10, 0)/2 + 0.5),(juice.shake.smooth_seesaw(10, 2)/2 + 0.5),(juice.shake.smooth_seesaw(10, 4)/2 + 0.5))
+        end
         love.graphics.draw(numeros_img, quad, 0, 0)
         love.graphics.setCanvas(drawable)
         love.graphics.setColor(color)
