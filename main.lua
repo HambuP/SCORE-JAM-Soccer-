@@ -273,7 +273,7 @@ local function draw_score()
         love.graphics.setCanvas(drawable)
         --local blend = love.graphics.getBlendMode()
         --love.graphics.setBlendMode("add")
-        love.graphics.draw(score_canvas, start_x, start_y, score_actual.rotation, score_actual.scale)
+        love.graphics.draw(score_canvas, x, start_y, score_actual.rotation, score_actual.scale)
     end
 end
 
