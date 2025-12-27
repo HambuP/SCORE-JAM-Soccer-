@@ -282,7 +282,7 @@ local function draw_score()
         love.graphics.setColor(color)
         --local blend = love.graphics.getBlendMode()
         --love.graphics.setBlendMode("add")
-        love.graphics.draw(score_canvas, start_x + juice.shake.smooth_seesaw(0.5)*3 + juice.shake.sin_shake(3), start_y, score_actual.rotation, score_actual.scale)
+        love.graphics.draw(score_canvas, x + juice.shake.smooth_seesaw(0.5)*3 + juice.shake.sin_shake(3), start_y, score_actual.rotation, score_actual.scale)
     end
 end
 
